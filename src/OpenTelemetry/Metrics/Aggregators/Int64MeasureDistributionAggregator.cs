@@ -20,6 +20,12 @@ namespace OpenTelemetry.Metrics.Aggregators
 {
     public class Int64MeasureDistributionAggregator : Aggregator<long>
     {
+
+        public Int64MeasureDistributionAggregator(AggregationOptions aggregationOptions)
+        {
+
+        }
+
         /// <inheritdoc/>
         public override void Update(long value)
         {

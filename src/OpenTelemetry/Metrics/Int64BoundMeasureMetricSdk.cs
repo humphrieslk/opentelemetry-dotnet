@@ -24,7 +24,7 @@ namespace OpenTelemetry.Metrics
     {
         private readonly Aggregator<long> measureAggregator;
 
-        internal Int64BoundMeasureMetricSdk(AggregationType aggregationType)
+        internal Int64BoundMeasureMetricSdk(AggregationType aggregationType, AggregationOptions aggregationOptions)
         {
             switch (aggregationType)
             {
@@ -32,7 +32,7 @@ namespace OpenTelemetry.Metrics
                     this.measureAggregator = new Int64MeasureMinMaxSumCountAggregator();
                     break;
                 case AggregationType.Int64Distribution:
-                    this.measureAggregator = new Int64MeasureDistributionAggregator();
+                    this.measureAggregator = new Int64MeasureDistributionAggregator(aggregationOptions);
                     break;
                 default:
                     throw new NotSupportedException("Unrecognized AggregationType");

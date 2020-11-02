@@ -24,13 +24,23 @@ namespace OpenTelemetry.Metrics
     {
         private readonly ConcurrentDictionary<LabelSet, BoundMeasureMetricSdkBase<T>> measureBoundInstruments = new ConcurrentDictionary<LabelSet, BoundMeasureMetricSdkBase<T>>();
         private string metricName;
+        protected readonly AggregationOptions aggregationOptions;
 
-        public MeasureMetricSdk(string name)
+        protected MeasureMetricSdk(string name, AggregationType aggregationType)
         {
             this.metricName = name;
+            this.MetricAggregationType = aggregationType;
+            this.aggregationOptions = new EmptyAggregationOptions();
         }
 
-        public AggregationType MetricAggregationType { get; internal set; }
+        protected MeasureMetricSdk(string name, AggregationType aggregationType, AggregationOptions aggregationOptions)
+        {
+            this.metricName = name;
+            this.MetricAggregationType = aggregationType;
+            this.aggregationOptions = aggregationOptions;
+        }
+
+        public AggregationType MetricAggregationType { get; }
 
         public override BoundMeasureMetric<T> Bind(LabelSet labelset)
         {

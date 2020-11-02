@@ -14,22 +14,57 @@
 // limitations under the License.
 // </copyright>
 
+using System;
+using System.Collections.Immutable;
+using System.Linq.Expressions;
+using System.Threading;
 using OpenTelemetry.Metrics.Export;
+using OpenTelemetry.Metrics.Histogram;
 
 namespace OpenTelemetry.Metrics.Aggregators
 {
     public class DoubleMeasureDistributionAggregator : Aggregator<double>
     {
+        private readonly Histogram<double> histogram;
+        private double[] bucketCounts;
+
+        public DoubleMeasureDistributionAggregator(AggregationOptions aggregationOptions)
+        {
+            switch (aggregationOptions)
+            {
+                case DoubleExplicitDistributionOptions explicitOptions :
+                    this.histogram = new ExplicitHistogram<double>(explicitOptions.Bounds);
+                    break;
+                case DoubleLinearDistributionOptions linearOptions :
+                    this.histogram = new DoubleLinearHistogram(
+                        linearOptions.Offset, linearOptions.Width, linearOptions.NumberOfFiniteBuckets);
+                    break;
+                case DoubleExponentialDistributionOptions exponentialOptions :
+                    this.histogram = new DoubleExponentialHistogram(
+                        exponentialOptions.Scale,
+                        exponentialOptions.GrowthFactor,
+                        exponentialOptions.NumberOfFiniteBuckets);
+                    break;
+                default:
+                    throw new NotSupportedException(
+                        "Unsupported aggregation options. Supported option types include: " +
+                        "DoubleExplicitDistributionOptions, DoubleLinearDistributionOptions, " +
+                        "DoubleExponentialDistributionOptions");
+            }
+            this.histogram = new ExplicitHistogram<double>(new double[1]);
+        }
+
         /// <inheritdoc/>
         public override void Update(double value)
         {
-            // TODO
+            this.histogram.RecordValue(value);
         }
 
         /// <inheritdoc/>
         public override void Checkpoint()
         {
             // TODO
+            Interlocked.Exchange(ref this.bucketCounts, new double[] { });
         }
 
         /// <inheritdoc/>

@@ -18,5 +18,28 @@ namespace OpenTelemetry.Metrics.Export
 {
     public class DoubleDistributionData : MetricData
     {
+        public long Count { get; set; }
+
+        public double Mean { get; set; }
+
+        public double SumOfSquaredDeviation { get; set; }
+
+        public double Min { get; set; }
+
+        public double Max { get; set; }
+
+        public long BucketCounts { get; set; }
+
+        // TODO: Bucket Options
+
+        // count_ = other.count_;
+        // mean_ = other.mean_;
+        // sumOfSquaredDeviation_ = other.sumOfSquaredDeviation_;
+        // range_ = other.range_ != null ? other.range_.Clone() : null;
+        // bucketOptions_ = other.bucketOptions_ != null ? other.bucketOptions_.Clone() : null;
+        // bucketCounts_ = other.bucketCounts_.Clone();
+
+        // at this time not supporting:
+        // exemplars_ = other.exemplars_.Clone();
     }
 }
