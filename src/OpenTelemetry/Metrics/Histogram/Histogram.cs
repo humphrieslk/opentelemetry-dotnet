@@ -15,9 +15,13 @@
 // </copyright>
 
 using System;
+using System.Collections;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
+using OpenTelemetry.Metrics.Export;
 
 namespace OpenTelemetry.Metrics.Histogram
 {
@@ -29,6 +33,10 @@ namespace OpenTelemetry.Metrics.Histogram
         private readonly long[] counts;
         private long[] overflowBucket = new long[1];
         private long[] underflowBucket = new long[1];
+        // protected readonly List<T> Values = new List<T>();
+        // protected readonly ConcurrentDictionary<T, long> Values = new ConcurrentDictionary<T, long>();
+        protected readonly ConcurrentStack<T> Values = new ConcurrentStack<T>();
+
 
         protected Histogram(int numberOfFiniteBuckets)
         {
@@ -45,21 +53,46 @@ namespace OpenTelemetry.Metrics.Histogram
         /// <summary>
         /// Atomically gets the histogram bucket counts (including overflow and underflow) and clears the buckets.
         /// </summary>
-        /// <returns>An immutable array representing the recorded bucket counts.</returns>
-        public long[] GetBucketCountsAndClear()
+        /// <returns><see cref="DistributionData"/> representing the data collected in the histogram.</returns>
+        public DistributionData GetDistributionAndClear()
         {
-            lock (this.counts) lock (this.overflowBucket) lock (this.underflowBucket)
+            lock (this.counts)
+            lock (this.overflowBucket)
+            lock (this.underflowBucket)
+            lock (this.Values)
             {
-                var bucketCounts = this.GetBucketCounts();
+                var distribution = this.Values.Count > 0
+                    ? this.GetDistributionData()
+                    : new DistributionData
+                        {
+                            BucketCounts = this.GetBucketCounts(),
+                            Count = this.Values.Count,
+                        };
                 this.overflowBucket = new long[1];
                 this.underflowBucket = new long[1];
                 Array.Clear(this.counts, 0, this.NumberOfFiniteBuckets);
+                this.Values.Clear();
 
-                return bucketCounts;
+                return distribution;
             }
         }
 
         public void RecordValue(T value)
+        {
+            this.Values.Push(value);
+            // this.Values.AddOrUpdate(value, key => 1, (key, count) => count + 1);
+            this.UpdateBucketCounts(value);
+        }
+
+        protected abstract int GetBucketIndex(T valueToAdd);
+
+        protected abstract DistributionData GetDistributionData();
+
+        protected abstract T GetLowestBound();
+
+        protected abstract T GetHighestBound();
+
+        private void UpdateBucketCounts(T value)
         {
             // first check if value falls in overflow or underflow buckets
             if (value.CompareTo(this.GetLowestBound()) < 0)
@@ -77,13 +110,7 @@ namespace OpenTelemetry.Metrics.Histogram
             Interlocked.Increment(ref this.counts[this.GetBucketIndex(value)]);
         }
 
-        protected abstract int GetBucketIndex(T valueToAdd);
-
-        protected abstract T GetLowestBound();
-
-        protected abstract T GetHighestBound();
-
-        private long[] GetBucketCounts()
+        protected long[] GetBucketCounts()
         {
             if (this.NumberOfFiniteBuckets == 0)
             {

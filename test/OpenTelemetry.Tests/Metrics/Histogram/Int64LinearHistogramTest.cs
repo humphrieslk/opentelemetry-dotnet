@@ -19,6 +19,7 @@ using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OpenTelemetry.Metrics.Histogram;
 using Xunit;
+using Assert = Xunit.Assert;
 
 namespace OpenTelemetry.Metrics.Tests
 {
@@ -29,14 +30,18 @@ namespace OpenTelemetry.Metrics.Tests
         {
             // expected bucket boundaries: { 1, 3, 5, 7, 9, 11 }
             var linearHistogram = new Int64LinearHistogram(1, 2, 5);
-            var expected = ImmutableArray.Create(new long[] { 1, 2, 2, 2, 2, 2, 1 });
+            var expectedBucketCounts = ImmutableArray.Create(new long[] { 1, 2, 2, 2, 2, 2, 1 });
 
             for (var i = 0; i <= 11; ++i)
             {
                 linearHistogram.RecordValue(i);
             }
 
-            CollectionAssert.AreEqual(expected, linearHistogram.GetBucketCountsAndClear());
+            var distributionData = linearHistogram.GetDistributionAndClear();
+            CollectionAssert.AreEqual(expectedBucketCounts, distributionData.BucketCounts);
+            Assert.Equal(12, distributionData.Count);
+            Assert.Equal(5.5, distributionData.Mean);
+            Assert.Equal(143, distributionData.SumOfSquaredDeviation);
         }
     }
 }

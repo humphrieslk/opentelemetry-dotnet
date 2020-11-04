@@ -15,8 +15,6 @@
 // </copyright>
 
 using System;
-using System.Collections.Immutable;
-using System.Linq.Expressions;
 using System.Threading;
 using OpenTelemetry.Metrics.Export;
 using OpenTelemetry.Metrics.Histogram;
@@ -26,14 +24,16 @@ namespace OpenTelemetry.Metrics.Aggregators
     public class DoubleMeasureDistributionAggregator : Aggregator<double>
     {
         private readonly Histogram<double> histogram;
-        private double[] bucketCounts;
+        private DoubleDistributionData doubleDistributionData = new DoubleDistributionData();
+        private readonly double[] maxValue = { double.MinValue };
+        private readonly double[] minValue = { double.MaxValue };
 
         public DoubleMeasureDistributionAggregator(AggregationOptions aggregationOptions)
         {
             switch (aggregationOptions)
             {
                 case DoubleExplicitDistributionOptions explicitOptions :
-                    this.histogram = new ExplicitHistogram<double>(explicitOptions.Bounds);
+                    this.histogram = new DoubleExplicitHistogram(explicitOptions.Bounds);
                     break;
                 case DoubleLinearDistributionOptions linearOptions :
                     this.histogram = new DoubleLinearHistogram(
@@ -51,26 +51,51 @@ namespace OpenTelemetry.Metrics.Aggregators
                         "DoubleExplicitDistributionOptions, DoubleLinearDistributionOptions, " +
                         "DoubleExponentialDistributionOptions");
             }
-            this.histogram = new ExplicitHistogram<double>(new double[1]);
         }
 
         /// <inheritdoc/>
         public override void Update(double value)
         {
+            if (value < this.minValue[0])
+            {
+                Interlocked.Exchange(ref this.minValue[0], Math.Min(value, this.minValue[0]));
+            }
+
+            if (value > this.maxValue[0])
+            {
+                Interlocked.Exchange(ref this.maxValue[0], Math.Max(value, this.maxValue[0]));
+            }
             this.histogram.RecordValue(value);
         }
 
         /// <inheritdoc/>
         public override void Checkpoint()
         {
-            // TODO
-            Interlocked.Exchange(ref this.bucketCounts, new double[] { });
+            lock (this.doubleDistributionData) lock (this.minValue) lock (this.maxValue)
+            {
+                var distributionData = this.histogram.GetDistributionAndClear();
+
+                this.doubleDistributionData = new DoubleDistributionData
+                {
+                    BucketCounts = distributionData.BucketCounts,
+                    Count = distributionData.Count,
+                    Mean = distributionData.Mean,
+                    SumOfSquaredDeviation = distributionData.SumOfSquaredDeviation,
+                };
+                if (this.doubleDistributionData.Count > 0)
+                {
+                    this.doubleDistributionData.Min = this.minValue[0];
+                    this.doubleDistributionData.Max = this.maxValue[0];
+                    this.minValue[0] = double.MaxValue;
+                    this.maxValue[0] = double.MinValue;
+                }
+            }
         }
 
         /// <inheritdoc/>
         public override MetricData ToMetricData()
         {
-            return new DoubleDistributionData();
+            return this.doubleDistributionData;
         }
 
         /// <inheritdoc/>

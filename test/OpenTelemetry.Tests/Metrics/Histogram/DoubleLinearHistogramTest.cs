@@ -30,14 +30,18 @@ namespace OpenTelemetry.Metrics.Tests
         {
             // expected bucket boundaries: { 1.5, 3, 4.5, 6, 7.5, 9 }
             var linearHistogram = new DoubleLinearHistogram(1.5, 1.5, 5);
-            var expected = ImmutableArray.Create(new long[] { 2, 1, 2, 1, 2, 1, 2 });
+            var expectedBucketCounts = ImmutableArray.Create(new long[] { 2, 1, 2, 1, 2, 1, 2 });
 
             for (var i = 0; i <= 10; ++i)
             {
                 linearHistogram.RecordValue(i);
             }
 
-            CollectionAssert.AreEqual(expected, linearHistogram.GetBucketCountsAndClear());
+            var distributionData = linearHistogram.GetDistributionAndClear();
+            CollectionAssert.AreEqual(expectedBucketCounts, distributionData.BucketCounts);
+            Assert.Equal(11, distributionData.Count);
+            Assert.Equal(5, distributionData.Mean);
+            Assert.Equal(110, distributionData.SumOfSquaredDeviation);
         }
     }
 }

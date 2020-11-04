@@ -14,11 +14,13 @@
 // limitations under the License.
 // </copyright>
 
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OpenTelemetry.Metrics.Histogram;
 using Xunit;
+using Assert = Xunit.Assert;
 
 namespace OpenTelemetry.Metrics.Tests
 {
@@ -29,7 +31,7 @@ namespace OpenTelemetry.Metrics.Tests
         {
             // expected bucket boundaries: { .5, 1.5, 4.5, 13.75, 40.5, 121.5 }
             var exponentialHistogram = new DoubleExponentialHistogram(.5, 3, 5);
-            var expected = ImmutableArray.Create(new long[] { 1, 2, 1, 2, 1, 2, 2 });
+            var expectedBucketCounts = ImmutableArray.Create(new long[] { 1, 2, 1, 2, 1, 2, 2 });
 
             exponentialHistogram.RecordValue(0);
             exponentialHistogram.RecordValue(.5);
@@ -43,7 +45,11 @@ namespace OpenTelemetry.Metrics.Tests
             exponentialHistogram.RecordValue(121.5);
             exponentialHistogram.RecordValue(121.6);
 
-            CollectionAssert.AreEqual(expected, exponentialHistogram.GetBucketCountsAndClear());
+            var distributionData = exponentialHistogram.GetDistributionAndClear();
+            CollectionAssert.AreEqual(expectedBucketCounts, distributionData.BucketCounts);
+            Assert.Equal(11, distributionData.Count);
+            Assert.Equal(31.895, Math.Round(distributionData.Mean, 3));
+            Assert.Equal(21917.352, Math.Round(distributionData.SumOfSquaredDeviation, 3));
         }
     }
 }

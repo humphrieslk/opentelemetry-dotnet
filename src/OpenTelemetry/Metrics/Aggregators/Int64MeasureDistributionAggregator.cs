@@ -14,40 +14,94 @@
 // limitations under the License.
 // </copyright>
 
+using System;
+using System.Threading;
 using OpenTelemetry.Metrics.Export;
+using OpenTelemetry.Metrics.Histogram;
 
 namespace OpenTelemetry.Metrics.Aggregators
 {
     public class Int64MeasureDistributionAggregator : Aggregator<long>
     {
+        private readonly Histogram<long> histogram;
+        private Int64DistributionData int64DistributionData = new Int64DistributionData();
+        private readonly long[] minValue = { long.MaxValue };
+        private readonly long[] maxValue = { long.MinValue };
 
         public Int64MeasureDistributionAggregator(AggregationOptions aggregationOptions)
         {
-
+            switch (aggregationOptions)
+            {
+                case Int64ExplicitDistributionOptions explicitOptions :
+                    this.histogram = new Int64ExplicitHistogram(explicitOptions.Bounds);
+                    break;
+                case Int64LinearDistributionOptions linearOptions :
+                    this.histogram = new Int64LinearHistogram(
+                        linearOptions.Offset, linearOptions.Width, linearOptions.NumberOfFiniteBuckets);
+                    break;
+                case Int64ExponentialDistributionOptions exponentialOptions :
+                    this.histogram = new Int64ExponentialHistogram(
+                        exponentialOptions.Scale,
+                        exponentialOptions.GrowthFactor,
+                        exponentialOptions.NumberOfFiniteBuckets);
+                    break;
+                default:
+                    throw new NotSupportedException(
+                        "Unsupported aggregation options. Supported option types include: " +
+                        "Int64ExplicitDistributionOptions, Int64LinearDistributionOptions, " +
+                        "Int64ExponentialDistributionOptions");
+            }
         }
 
         /// <inheritdoc/>
         public override void Update(long value)
         {
-            // TODO
+            if (value < this.minValue[0])
+            {
+                Interlocked.Exchange(ref this.minValue[0], Math.Min(value, this.minValue[0]));
+            }
+
+            if (value > this.maxValue[0])
+            {
+                Interlocked.Exchange(ref this.maxValue[0], Math.Max(value, this.maxValue[0]));
+            }
+
+            this.histogram.RecordValue(value);
         }
 
         /// <inheritdoc/>
         public override void Checkpoint()
         {
-            // TODO
+            lock (this.int64DistributionData) lock (this.minValue) lock (this.maxValue)
+            {
+                var distributionData = this.histogram.GetDistributionAndClear();
+                this.int64DistributionData = new Int64DistributionData
+                {
+                    BucketCounts = distributionData.BucketCounts,
+                    Count = distributionData.Count,
+                    Mean = distributionData.Mean,
+                    SumOfSquaredDeviation = distributionData.SumOfSquaredDeviation,
+                };
+                if (this.int64DistributionData.Count > 0)
+                {
+                    this.int64DistributionData.Min = this.minValue[0];
+                    this.int64DistributionData.Max = this.maxValue[0];
+                    this.minValue[0] = long.MaxValue;
+                    this.maxValue[0] = long.MinValue;
+                }
+            }
         }
 
         /// <inheritdoc/>
         public override MetricData ToMetricData()
         {
-            return new Int64DistributionData();
+            return this.int64DistributionData;
         }
 
         /// <inheritdoc/>
         public override AggregationType GetAggregationType()
         {
-            return AggregationType.DoubleDistribution;
+            return AggregationType.Int64Distribution;
         }
     }
 }

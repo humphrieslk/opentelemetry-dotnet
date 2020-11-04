@@ -30,43 +30,58 @@ namespace OpenTelemetry.Metrics.Tests
         [Fact]
         public void RecordValue_Success()
         {
-            var explicitHistogram = new ExplicitHistogram<long>(new long[] { -1, 0, 1, 2, 4, 8, 10, 16 });
-            var expected = ImmutableArray.Create(new long[] { 1, 1, 1, 1, 2, 4, 2, 6, 2 });
+            var explicitHistogram = new Int64ExplicitHistogram(new long[] { -1, 0, 1, 2, 4, 8, 10, 16 });
+            var expectedBucketCounts = ImmutableArray.Create(new long[] { 1, 1, 1, 1, 2, 4, 2, 6, 2 });
 
             for (var i = -2; i <= 17; ++i)
             {
                 explicitHistogram.RecordValue(i);
             }
 
-            CollectionAssert.AreEqual(expected, explicitHistogram.GetBucketCountsAndClear());
+            var distributionData = explicitHistogram.GetDistributionAndClear();
+            CollectionAssert.AreEqual(expectedBucketCounts, distributionData.BucketCounts);
+            Assert.Equal(20, distributionData.Count);
+            Assert.Equal(7.5, distributionData.Mean);
+            Assert.Equal(665, distributionData.SumOfSquaredDeviation);
         }
 
         [Fact]
         public void RecordValue_SuccessWithOneBoundary()
         {
-            var explicitHistogram = new ExplicitHistogram<long>(new long[] { 0 });
-            var expected = ImmutableArray.Create(new long[] { 10, 11 });
+            var explicitHistogram = new DoubleExplicitHistogram(new double[] { 0 });
+            var expectedBucketCounts = ImmutableArray.Create(new long[] { 10, 11 });
 
             for (var i = -10; i <= 10; ++i)
             {
                 explicitHistogram.RecordValue(i);
             }
 
-            CollectionAssert.AreEqual(expected, explicitHistogram.GetBucketCountsAndClear());
+            var distributionData = explicitHistogram.GetDistributionAndClear();
+            CollectionAssert.AreEqual(expectedBucketCounts, distributionData.BucketCounts);
+            Assert.Equal(21, distributionData.Count);
+            Assert.Equal(0, distributionData.Mean);
+            Assert.Equal(770, distributionData.SumOfSquaredDeviation);
         }
 
         [Fact]
         public void GetBucketCountsAndClear_ClearsCounts()
         {
-            var explicitHistogram = new ExplicitHistogram<long>(new long[] { 0, 1 });
-            var expectedValues = ImmutableArray.Create(new long[] { 0, 1, 1 });
-            var expectedEmpty = ImmutableArray.Create(new long[] { 0, 0, 0 });
+            var explicitHistogram = new Int64ExplicitHistogram(new long[] { 0, 1 });
+            var expectedBucketCounts = ImmutableArray.Create(new long[] { 0, 1, 1 });
+            var expectedEmptyBucketCounts = ImmutableArray.Create(new long[] { 0, 0, 0 });
 
             explicitHistogram.RecordValue(0);
             explicitHistogram.RecordValue(1);
 
-            CollectionAssert.AreEqual(expectedValues, explicitHistogram.GetBucketCountsAndClear());
-            CollectionAssert.AreEqual(expectedEmpty, explicitHistogram.GetBucketCountsAndClear());
+            var distributionData = explicitHistogram.GetDistributionAndClear();
+            var clearDistributionData = explicitHistogram.GetDistributionAndClear();
+
+            CollectionAssert.AreEqual(expectedBucketCounts, distributionData.BucketCounts);
+            Assert.Equal(2, distributionData.Count);
+            Assert.Equal(.5, distributionData.Mean);
+            Assert.Equal(.5, distributionData.SumOfSquaredDeviation);
+            CollectionAssert.AreEqual(expectedEmptyBucketCounts, clearDistributionData.BucketCounts);
+            Assert.Equal(0, clearDistributionData.Count);
         }
 
         [Fact]
@@ -74,7 +89,7 @@ namespace OpenTelemetry.Metrics.Tests
         {
             try
             {
-                var explicitHistogram = new ExplicitHistogram<long>(new long[] { });
+                var explicitHistogram = new Int64ExplicitHistogram(new long[] { });
                 Assert.True(false, "Constructor should have thrown error.");
             }
             catch (ArgumentOutOfRangeException)
@@ -83,7 +98,7 @@ namespace OpenTelemetry.Metrics.Tests
 
             try
             {
-                var explicitHistogram = new ExplicitHistogram<long>(new long[210]);
+                var explicitHistogram = new Int64ExplicitHistogram(new long[210]);
                 Assert.True(false, "Constructor should have thrown error.");
             }
             catch (ArgumentOutOfRangeException)

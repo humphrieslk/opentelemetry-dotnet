@@ -1,4 +1,4 @@
-﻿// <copyright file="DoubleLinearHistogram.cs" company="OpenTelemetry Authors">
+﻿// <copyright file="DoubleExplicitHistogram.cs" company="OpenTelemetry Authors">
 // Copyright The OpenTelemetry Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,43 +13,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // </copyright>
-
-using System;
 using System.Linq;
 using OpenTelemetry.Metrics.Export;
 
 namespace OpenTelemetry.Metrics.Histogram
 {
-    public class DoubleLinearHistogram : LinearHistogram<double>
+    public class DoubleExplicitHistogram : ExplicitHistogram<double>
     {
-        public DoubleLinearHistogram(double offset, double width, int numberOfFiniteBuckets)
-            : base(offset, width, numberOfFiniteBuckets)
-        {
-        }
 
-        protected override int GetBucketIndex(double valueToAdd)
+        public DoubleExplicitHistogram(double[] bounds)
+            : base(bounds)
         {
-            var doubleIndex = (valueToAdd - this.Offset) / this.Width;
-
-            return (int)Math.Floor(doubleIndex);
         }
 
         protected override DistributionData GetDistributionData()
         {
             var mean = this.Values.Average();
-
             return new DistributionData()
             {
                 BucketCounts = this.GetBucketCounts(),
                 Count = this.Values.Count,
-                Mean = this.Values.Average(),
+                Mean = mean,
                 SumOfSquaredDeviation = HistogramHelper.GetSumOfSquaredDeviation(mean, this.Values.ToArray()),
             };
-        }
-
-        protected override double GetHighestBound()
-        {
-            return this.Offset + (this.Width * this.NumberOfFiniteBuckets);
         }
     }
 }

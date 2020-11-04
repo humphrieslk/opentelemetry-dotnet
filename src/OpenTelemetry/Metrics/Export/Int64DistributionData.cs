@@ -1,4 +1,4 @@
-﻿// <copyright file="Int64DistributionData.cs" company="OpenTelemetry Authors">
+﻿﻿// <copyright file="Int64DistributionData.cs" company="OpenTelemetry Authors">
 // Copyright The OpenTelemetry Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,30 +16,10 @@
 
 namespace OpenTelemetry.Metrics.Export
 {
-    public class Int64DistributionData : MetricData
+    public class Int64DistributionData : DistributionData
     {
-        public long Count { get; set; }
+        public long Min { get; set; }
 
-        public double Mean { get; set; }
-
-        public double SumOfSquaredDeviation { get; set; }
-
-        public double Min { get; set; }
-
-        public double Max { get; set; }
-
-        public long BucketCounts { get; set; }
-
-        // TODO: Bucket Options
-
-        // count_ = other.count_;
-        // mean_ = other.mean_;
-        // sumOfSquaredDeviation_ = other.sumOfSquaredDeviation_;
-        // range_ = other.range_ != null ? other.range_.Clone() : null;
-        // bucketOptions_ = other.bucketOptions_ != null ? other.bucketOptions_.Clone() : null;
-        // bucketCounts_ = other.bucketCounts_.Clone();
-
-        // at this time not supporting:
-        // exemplars_ = other.exemplars_.Clone();
+        public long Max { get; set; }
     }
 }

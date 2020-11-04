@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using OpenTelemetry.Metrics.Export;
 
 namespace OpenTelemetry.Metrics.Histogram
 {
@@ -14,6 +16,20 @@ namespace OpenTelemetry.Metrics.Histogram
             var doubleIndex = Math.Log((double)valueToAdd / this.Scale, this.GrowthFactor);
 
             return (int)Math.Floor(doubleIndex);
+        }
+
+        protected override DistributionData GetDistributionData()
+        {
+            var mean = this.Values.Average();
+
+            return new DistributionData()
+            {
+                BucketCounts = this.GetBucketCounts(),
+                Count = this.Values.Count,
+                Mean = mean,
+                SumOfSquaredDeviation = HistogramHelper.GetSumOfSquaredDeviation(
+                    mean, this.Values.Select(val => (double)val).ToArray()),
+            };
         }
 
         protected override long GetHighestBound()

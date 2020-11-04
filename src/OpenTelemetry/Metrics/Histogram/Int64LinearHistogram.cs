@@ -15,6 +15,8 @@
 // </copyright>
 
 using System;
+using System.Linq;
+using OpenTelemetry.Metrics.Export;
 
 namespace OpenTelemetry.Metrics.Histogram
 {
@@ -30,6 +32,20 @@ namespace OpenTelemetry.Metrics.Histogram
             var doubleIndex = (double)(valueToAdd - this.Offset) / this.Width;
 
             return (int)Math.Floor(doubleIndex);
+        }
+
+        protected override DistributionData GetDistributionData()
+        {
+            var mean = this.Values.Average();
+
+            return new DistributionData()
+            {
+                BucketCounts = this.GetBucketCounts(),
+                Count = this.Values.Count,
+                Mean = this.Values.Average(),
+                SumOfSquaredDeviation = HistogramHelper.GetSumOfSquaredDeviation(
+                    mean, this.Values.Select(val => (double)val).ToArray()),
+            };
         }
 
         protected override long GetHighestBound()

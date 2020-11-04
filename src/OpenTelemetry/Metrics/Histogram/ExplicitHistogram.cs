@@ -17,17 +17,17 @@ using System;
 
 namespace OpenTelemetry.Metrics.Histogram
 {
-    public class ExplicitHistogram<T> : Histogram<T>
+    public abstract class ExplicitHistogram<T> : Histogram<T>
         where T : IComparable<T>
     {
-        public ExplicitHistogram(T[] bounds)
+        protected ExplicitHistogram(T[] bounds)
             : base(bounds.Length - 1)
         {
             this.Bounds = new T[bounds.Length];
             Array.Copy(bounds, this.Bounds, bounds.Length);
         }
 
-        public T[] Bounds { get; internal set; }
+        public T[] Bounds { get; }
 
 
         protected override int GetBucketIndex(T valueToAdd)

@@ -1,4 +1,4 @@
-﻿// <copyright file="DoubleExplicitDistributionOptions.cs" company="OpenTelemetry Authors">
+﻿// <copyright file="Int64ExplicitDistributionOptions.cs" company="OpenTelemetry Authors">
 // Copyright The OpenTelemetry Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,11 +19,11 @@ namespace OpenTelemetry.Metrics
     /// <summary>
     /// TODO.
     /// </summary>
-    public class DoubleExplicitDistributionOptions : AggregationOptions
+    public class Int64ExplicitDistributionOptions : AggregationOptions
     {
         /// <summary>
         /// Gets or sets TODO.
         /// </summary>
-        public double[] Bounds { get; set; }
+        public long[] Bounds { get; set; }
     }
 }
