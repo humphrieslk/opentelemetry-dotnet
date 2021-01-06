@@ -24,7 +24,6 @@ namespace OpenTelemetry.Metrics
     {
         private readonly Aggregator<double> measureAggregator;
 
-
         internal DoubleBoundMeasureMetricSdk(AggregationType aggregationType, AggregationOptions aggregationOptions)
         {
             switch (aggregationType)

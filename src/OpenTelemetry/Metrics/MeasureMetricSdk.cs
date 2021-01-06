@@ -22,9 +22,10 @@ namespace OpenTelemetry.Metrics
     internal abstract class MeasureMetricSdk<T> : MeasureMetric<T>
         where T : struct
     {
+        protected readonly AggregationOptions aggregationOptions;
+
         private readonly ConcurrentDictionary<LabelSet, BoundMeasureMetricSdkBase<T>> measureBoundInstruments = new ConcurrentDictionary<LabelSet, BoundMeasureMetricSdkBase<T>>();
         private string metricName;
-        protected readonly AggregationOptions aggregationOptions;
 
         protected MeasureMetricSdk(string name, AggregationType aggregationType)
         {

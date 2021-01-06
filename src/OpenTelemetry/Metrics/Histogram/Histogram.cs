@@ -29,14 +29,11 @@ namespace OpenTelemetry.Metrics.Histogram
         where T : IComparable<T>
     {
         protected readonly int NumberOfFiniteBuckets;
+        protected readonly ConcurrentStack<T> Values = new ConcurrentStack<T>();
 
         private readonly long[] counts;
         private long[] overflowBucket = new long[1];
         private long[] underflowBucket = new long[1];
-        // protected readonly List<T> Values = new List<T>();
-        // protected readonly ConcurrentDictionary<T, long> Values = new ConcurrentDictionary<T, long>();
-        protected readonly ConcurrentStack<T> Values = new ConcurrentStack<T>();
-
 
         protected Histogram(int numberOfFiniteBuckets)
         {
@@ -80,7 +77,6 @@ namespace OpenTelemetry.Metrics.Histogram
         public void RecordValue(T value)
         {
             this.Values.Push(value);
-            // this.Values.AddOrUpdate(value, key => 1, (key, count) => count + 1);
             this.UpdateBucketCounts(value);
         }
 
@@ -91,6 +87,16 @@ namespace OpenTelemetry.Metrics.Histogram
         protected abstract T GetLowestBound();
 
         protected abstract T GetHighestBound();
+
+        protected long[] GetBucketCounts()
+        {
+            if (this.NumberOfFiniteBuckets == 0)
+            {
+                return this.underflowBucket.Concat(this.overflowBucket).ToArray();
+            }
+
+            return this.underflowBucket.Concat(this.counts).Concat(this.overflowBucket).ToArray();
+        }
 
         private void UpdateBucketCounts(T value)
         {
@@ -108,16 +114,6 @@ namespace OpenTelemetry.Metrics.Histogram
             }
 
             Interlocked.Increment(ref this.counts[this.GetBucketIndex(value)]);
-        }
-
-        protected long[] GetBucketCounts()
-        {
-            if (this.NumberOfFiniteBuckets == 0)
-            {
-                return this.underflowBucket.Concat(this.overflowBucket).ToArray();
-            }
-
-            return this.underflowBucket.Concat(this.counts).Concat(this.overflowBucket).ToArray();
         }
     }
 }

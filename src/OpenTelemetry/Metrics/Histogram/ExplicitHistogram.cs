@@ -29,7 +29,6 @@ namespace OpenTelemetry.Metrics.Histogram
 
         public T[] Bounds { get; }
 
-
         protected override int GetBucketIndex(T valueToAdd)
         {
             var startingIndex = (int)Math.Ceiling((double)this.NumberOfFiniteBuckets / 2);
@@ -47,8 +46,8 @@ namespace OpenTelemetry.Metrics.Histogram
         }
 
         /// <summary>
-        /// Binary search for the appropriate bucket index where the <see cref="valueToAdd"/> is greater than or equal
-        /// to the index's bound and is less than the bound of the next index.
+        /// Binary search for the appropriate bucket index where the value to add is greater than or equal to the
+        /// index's bound and is less than the bound of the next index.
         ///
         /// This method assumes that the value is within [lowerBound, upperBound). If the value is outside this range,
         /// it should be part of the underflow or overflow buckets.

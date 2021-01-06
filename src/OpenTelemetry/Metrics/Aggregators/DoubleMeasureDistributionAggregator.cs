@@ -23,23 +23,25 @@ namespace OpenTelemetry.Metrics.Aggregators
 {
     public class DoubleMeasureDistributionAggregator : Aggregator<double>
     {
-        private readonly Histogram<double> histogram;
-        private DoubleDistributionData doubleDistributionData = new DoubleDistributionData();
+        private readonly AggregationOptions aggregationOptions;
         private readonly double[] maxValue = { double.MinValue };
         private readonly double[] minValue = { double.MaxValue };
+        private readonly Histogram<double> histogram;
+        private DoubleDistributionData doubleDistributionData = new DoubleDistributionData();
 
         public DoubleMeasureDistributionAggregator(AggregationOptions aggregationOptions)
         {
+            this.aggregationOptions = aggregationOptions;
             switch (aggregationOptions)
             {
-                case DoubleExplicitDistributionOptions explicitOptions :
+                case DoubleExplicitDistributionOptions explicitOptions:
                     this.histogram = new DoubleExplicitHistogram(explicitOptions.Bounds);
                     break;
-                case DoubleLinearDistributionOptions linearOptions :
+                case DoubleLinearDistributionOptions linearOptions:
                     this.histogram = new DoubleLinearHistogram(
                         linearOptions.Offset, linearOptions.Width, linearOptions.NumberOfFiniteBuckets);
                     break;
-                case DoubleExponentialDistributionOptions exponentialOptions :
+                case DoubleExponentialDistributionOptions exponentialOptions:
                     this.histogram = new DoubleExponentialHistogram(
                         exponentialOptions.Scale,
                         exponentialOptions.GrowthFactor,
@@ -65,12 +67,14 @@ namespace OpenTelemetry.Metrics.Aggregators
             {
                 Interlocked.Exchange(ref this.maxValue[0], Math.Max(value, this.maxValue[0]));
             }
+
             this.histogram.RecordValue(value);
         }
 
         /// <inheritdoc/>
         public override void Checkpoint()
         {
+            base.Checkpoint();
             lock (this.doubleDistributionData) lock (this.minValue) lock (this.maxValue)
             {
                 var distributionData = this.histogram.GetDistributionAndClear();
@@ -95,6 +99,10 @@ namespace OpenTelemetry.Metrics.Aggregators
         /// <inheritdoc/>
         public override MetricData ToMetricData()
         {
+            this.doubleDistributionData.AggregationOptions = this.aggregationOptions;
+            this.doubleDistributionData.StartTimestamp = new DateTime(this.GetLastStartTimestamp().Ticks);
+            this.doubleDistributionData.Timestamp = new DateTime(this.GetLastEndTimestamp().Ticks);
+
             return this.doubleDistributionData;
         }
 

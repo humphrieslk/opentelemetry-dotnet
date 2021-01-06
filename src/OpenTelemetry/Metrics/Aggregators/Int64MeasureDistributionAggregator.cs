@@ -23,23 +23,25 @@ namespace OpenTelemetry.Metrics.Aggregators
 {
     public class Int64MeasureDistributionAggregator : Aggregator<long>
     {
+        private readonly AggregationOptions aggregationOptions;
         private readonly Histogram<long> histogram;
-        private Int64DistributionData int64DistributionData = new Int64DistributionData();
         private readonly long[] minValue = { long.MaxValue };
         private readonly long[] maxValue = { long.MinValue };
+        private Int64DistributionData int64DistributionData = new Int64DistributionData();
 
         public Int64MeasureDistributionAggregator(AggregationOptions aggregationOptions)
         {
+            this.aggregationOptions = aggregationOptions;
             switch (aggregationOptions)
             {
-                case Int64ExplicitDistributionOptions explicitOptions :
+                case Int64ExplicitDistributionOptions explicitOptions:
                     this.histogram = new Int64ExplicitHistogram(explicitOptions.Bounds);
                     break;
-                case Int64LinearDistributionOptions linearOptions :
+                case Int64LinearDistributionOptions linearOptions:
                     this.histogram = new Int64LinearHistogram(
                         linearOptions.Offset, linearOptions.Width, linearOptions.NumberOfFiniteBuckets);
                     break;
-                case Int64ExponentialDistributionOptions exponentialOptions :
+                case Int64ExponentialDistributionOptions exponentialOptions:
                     this.histogram = new Int64ExponentialHistogram(
                         exponentialOptions.Scale,
                         exponentialOptions.GrowthFactor,
@@ -72,6 +74,7 @@ namespace OpenTelemetry.Metrics.Aggregators
         /// <inheritdoc/>
         public override void Checkpoint()
         {
+            base.Checkpoint();
             lock (this.int64DistributionData) lock (this.minValue) lock (this.maxValue)
             {
                 var distributionData = this.histogram.GetDistributionAndClear();
@@ -95,6 +98,10 @@ namespace OpenTelemetry.Metrics.Aggregators
         /// <inheritdoc/>
         public override MetricData ToMetricData()
         {
+            this.int64DistributionData.AggregationOptions = this.aggregationOptions;
+            this.int64DistributionData.StartTimestamp = new DateTime(this.GetLastStartTimestamp().Ticks);
+            this.int64DistributionData.Timestamp = new DateTime(this.GetLastEndTimestamp().Ticks);
+
             return this.int64DistributionData;
         }
 

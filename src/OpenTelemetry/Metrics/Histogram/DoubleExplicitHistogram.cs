@@ -20,7 +20,6 @@ namespace OpenTelemetry.Metrics.Histogram
 {
     public class DoubleExplicitHistogram : ExplicitHistogram<double>
     {
-
         public DoubleExplicitHistogram(double[] bounds)
             : base(bounds)
         {
